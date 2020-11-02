@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Collections.Generic;
+using System;
 
 namespace OmegaEngine
 {
@@ -21,7 +22,7 @@ namespace OmegaEngine
                     int i = x + SpriteDimensions.X * y;
 
                     col = image.GetPixel(x, y);
-                    if (col.A >= 1)
+                    if (col.A == 255)
                         SpriteColors[i] = new RGBA(col.R, col.G, col.B, col.A);
                     else
                         SpriteColors[i] = new RGBA(0, 0, 0, 0);

@@ -92,9 +92,9 @@ namespace OmegaEngine
                 return;
             }
 
-            BeforeStart();
             SDL.SDL_SetRenderDrawColor(rendererHWND, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, BackgroundColor.A);
             SDL.SDL_RenderClear(rendererHWND);
+            BeforeStart();
             frameWatch.Start();
             while (true)
             {
