@@ -17,6 +17,8 @@ namespace OmegaEngine.Example
                     color = new RGBA((byte)rng.Next(0, 256), (byte)rng.Next(0, 256), (byte)rng.Next(0, 256));
                     DrawAt(new Vector2(x, y), color);
                 }
+
+            base.Draw();
         }
 
         public override bool Update()

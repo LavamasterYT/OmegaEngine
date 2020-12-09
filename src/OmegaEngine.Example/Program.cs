@@ -7,9 +7,7 @@ namespace OmegaEngine.Example
     {
         static void Main()
         {
-            using (RandomPixels game = new RandomPixels())
-                game.Start();
-            using (Frogger game = new Frogger())
+            using (Game game = new Tetris())
                 game.Start();
         }
     }

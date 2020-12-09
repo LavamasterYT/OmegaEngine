@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using static OmegaEngine.SDL;
 
 namespace OmegaEngine
 {
@@ -11,6 +12,9 @@ namespace OmegaEngine
         private int pixelHeight;
         private bool clearOnEachFrame;
         private Stopwatch frameWatch;
+        private RGBA[] screenBuffer;
+        private RGBA[] previousScreenBuffer;
+        public DiscordRPC RPC;
 
         // SDL handles
         private IntPtr windowHWND = IntPtr.Zero;
@@ -32,25 +36,24 @@ namespace OmegaEngine
         /// </summary>
         /// <returns>RETURN TRUE IF QUITTING, ELSE FALSE</returns>
         public abstract bool Update();
-        public abstract void Draw();
-        public virtual void KeyDown(SDL.SDL_Keycode key) { }
-        public virtual void KeyUp(SDL.SDL_Keycode key) { }
+        public virtual void KeyDown(SDL_Keycode key) { }
+        public virtual void KeyUp(SDL_Keycode key) { }
         public virtual void OnQuit() { }
-        public virtual void OnSDLEvent(SDL.SDL_Event sdlEvent) { }
+        public virtual void OnSDLEvent(SDL_Event sdlEvent) { }
         public virtual void BeforeStart() { }
 
         public Game(int width, int height, int gW, int gH, int fr, bool clear = true)
         {
             framerate = 1000 / fr;
 
-            if (SDL.SDL_Init(SDL.SDL_INIT_EVERYTHING) < 0)
+            if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
             {
-                Console.WriteLine($"Unable to initialize SDL: {SDL.SDL_GetError()}");
+                Console.WriteLine($"Unable to initialize SDL: {SDL_GetError()}");
             }
 
             if (SDL_ttf.TTF_Init() < 0)
             {
-                Console.WriteLine($"Unable to initialize SDL_ttf: {SDL.SDL_GetError()}");
+                Console.WriteLine($"Unable to initialize SDL_ttf: {SDL_GetError()}");
             }
 
             if (width % gW != 0 || height % gH != 0)
@@ -74,47 +77,53 @@ namespace OmegaEngine
 
             GridWidth = gW;
             GridHeight = gH;
+
+            screenBuffer = new RGBA[gW * gH];
+            previousScreenBuffer = new RGBA[gW * gH];
+
+            for (int i = 0; i < screenBuffer.Length; i++)
+            {
+                screenBuffer[i] = BackgroundColor;
+                previousScreenBuffer[i] = BackgroundColor;
+            }
         }
 
         public void Start()
         {
-            SDL.SDL_CreateWindowAndRenderer(WindowWidth, WindowHeight, SDL.SDL_WindowFlags.SDL_WINDOW_SHOWN, out windowHWND, out rendererHWND);
+            //SDL_CreateWindowAndRenderer(WindowWidth, WindowHeight, SDL_WindowFlags.SDL_WINDOW_SHOWN, out windowHWND, out rendererHWND);
+
+            windowHWND = SDL_CreateWindow(WindowTitle, 1920 / 2 - WindowWidth / 2, 1080 / 2 - WindowHeight / 2, WindowWidth, WindowHeight, SDL_WindowFlags.SDL_WINDOW_SHOWN);
+            rendererHWND = SDL_CreateRenderer(windowHWND, -1, SDL_RendererFlags.SDL_RENDERER_ACCELERATED);
 
             if (windowHWND == IntPtr.Zero || windowHWND == null)
             {
-                Console.WriteLine($"Unable to create window: {SDL.SDL_GetError()}");
+                Console.WriteLine($"Unable to create window: {SDL_GetError()}");
                 return;
             }
 
             if (rendererHWND == IntPtr.Zero || rendererHWND == null)
             {
-                Console.WriteLine($"Unable to create renderer: {SDL.SDL_GetError()}");
+                Console.WriteLine($"Unable to create renderer: {SDL_GetError()}");
                 return;
             }
 
-            SDL.SDL_SetRenderDrawColor(rendererHWND, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, BackgroundColor.A);
-            SDL.SDL_RenderClear(rendererHWND);
+            SDL_SetRenderDrawColor(rendererHWND, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, BackgroundColor.A);
+            SDL_RenderClear(rendererHWND);
             BeforeStart();
             frameWatch.Start();
             while (true)
             {
-                if (clearOnEachFrame)
-                {
-                    SDL.SDL_SetRenderDrawColor(rendererHWND, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, BackgroundColor.A);
-                    SDL.SDL_RenderClear(rendererHWND);
-                }
-
-                while (SDL.SDL_PollEvent(out SDL.SDL_Event sdlEvent) != 0)
+                while (SDL_PollEvent(out SDL_Event sdlEvent) != 0)
                 {
                     switch (sdlEvent.type)
                     {
-                        case SDL.SDL_EventType.SDL_KEYDOWN:
+                        case SDL_EventType.SDL_KEYDOWN:
                             KeyDown(sdlEvent.key.keysym.sym);
                             break;
-                        case SDL.SDL_EventType.SDL_KEYUP:
+                        case SDL_EventType.SDL_KEYUP:
                             KeyUp(sdlEvent.key.keysym.sym);
                             break;
-                        case SDL.SDL_EventType.SDL_QUIT:
+                        case SDL_EventType.SDL_QUIT:
                             OnQuit();
                             Quit();
                             return;
@@ -128,8 +137,8 @@ namespace OmegaEngine
                     return;
                 }    
                 Draw();
-                SDL.SDL_RenderPresent(rendererHWND);
-                SDL.SDL_Delay((uint)framerate);
+                SDL_RenderPresent(rendererHWND);
+                SDL_Delay((uint)framerate);
 
                 int fps = -1;
                 framesRendered++;
@@ -142,7 +151,42 @@ namespace OmegaEngine
                 }
 
                 if (fps != -1)
-                    SDL.SDL_SetWindowTitle(windowHWND, $"{WindowTitle} - {fps} fps");
+                    SDL_SetWindowTitle(windowHWND, $"{WindowTitle} - {fps} fps");
+
+                RPC?.Invoke();
+            }
+        }
+
+        public virtual void Draw()
+        {
+            if (clearOnEachFrame)
+            {
+                for (int i = 0; i < screenBuffer.Length; i++)
+                {
+                    if (!RGBA.IsEqual(screenBuffer[i], previousScreenBuffer[i]))
+                    {
+                        SDL_SetRenderDrawColor(rendererHWND, screenBuffer[i].R, screenBuffer[i].G, screenBuffer[i].B, screenBuffer[i].A);
+
+                        int xInitPos = pixelWidth * (i % GridWidth);
+                        int xDestPos = xInitPos + pixelWidth;
+                        int yInitPos = pixelHeight * (i / GridWidth);
+                        int yDestPos = yInitPos + pixelHeight;
+
+                        for (int x = xInitPos; x < xDestPos; x++)
+                        {
+                            for (int y = yInitPos; y < yDestPos; y++)
+                            {
+                                SDL_RenderDrawPoint(rendererHWND, x, y);
+                            }
+                        }
+                    }
+                }
+
+                Array.Copy(screenBuffer, previousScreenBuffer, screenBuffer.Length);
+                for (int i = 0; i < screenBuffer.Length; i++)
+                {
+                    screenBuffer[i] = BackgroundColor;
+                }
             }
         }
 
@@ -150,27 +194,34 @@ namespace OmegaEngine
         {
             if (font.hWnd == IntPtr.Zero)
             {
-                Console.WriteLine("Unable to open font: " + SDL.SDL_GetError());
+                Console.WriteLine("Unable to open font: " + SDL_GetError());
                 Quit();
                 return;
             }
             var surMes = SDL_ttf.TTF_RenderText_Solid(font.hWnd, text, font.Color.ToSDL_Color());
-            var mes = SDL.SDL_CreateTextureFromSurface(rendererHWND, surMes);
-            SDL.SDL_Rect rect = new SDL.SDL_Rect()
+            var mes = SDL_CreateTextureFromSurface(rendererHWND, surMes);
+            SDL_Rect rect = new SDL_Rect()
             {
                 x = pos.X,
                 y = pos.Y,
                 h = size.Y,
                 w = size.X
             };
-            SDL.SDL_RenderCopy(rendererHWND, mes, IntPtr.Zero, ref rect);
-            SDL.SDL_FreeSurface(surMes);
-            SDL.SDL_DestroyTexture(mes);
+            SDL_RenderCopy(rendererHWND, mes, IntPtr.Zero, ref rect);
+            SDL_FreeSurface(surMes);
+            SDL_DestroyTexture(mes);
         }
 
         public void DrawAt(Vector2 pos, RGBA color)
         {
-            SDL.SDL_SetRenderDrawColor(rendererHWND, color.R, color.G, color.B, color.A);
+            if (pos.X >= GridWidth || pos.X < 0 || pos.Y >= GridHeight || pos.Y < 0)
+            {
+                return;
+            }
+            screenBuffer[pos.X + GridWidth * pos.Y] = color;
+            return;
+
+            //SDL_SetRenderDrawColor(rendererHWND, color.R, color.G, color.B, color.A);
 
             int xInitPos = pixelWidth * pos.X;
             int xDestPos = xInitPos + pixelWidth;
@@ -181,9 +232,14 @@ namespace OmegaEngine
             {
                 for (int y = yInitPos; y < yDestPos; y++)
                 {
-                    SDL.SDL_RenderDrawPoint(rendererHWND, x, y);
+                    //SDL_RenderDrawPoint(rendererHWND, x, y);
                 }
             }
+        }
+
+        public string GetLastError()
+        {
+            return SDL_GetError();
         }
 
         public void DrawSprite(Sprite sprite, Vector2 pos)
@@ -191,15 +247,16 @@ namespace OmegaEngine
             for (int i = 0; i < sprite.SpriteColors.Length; i++)
             {
                 Vector2 colPos = sprite.GetVectorFromIndex(i);
-                DrawAt(Vector2.Add(colPos, pos), sprite.SpriteColors[i]);
+                if (sprite.SpriteColors[i].A == 255)
+                    DrawAt(Vector2.Add(colPos, pos), sprite.SpriteColors[i]);
             }
         }
 
         public void Quit()
         {
-            SDL.SDL_DestroyWindow(windowHWND);
-            SDL.SDL_DestroyRenderer(rendererHWND);
-            SDL.SDL_Quit();
+            SDL_DestroyWindow(windowHWND);
+            SDL_DestroyRenderer(rendererHWND);
+            SDL_Quit();
         }
 
         #region Dispose Code

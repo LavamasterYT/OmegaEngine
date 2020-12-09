@@ -35,5 +35,10 @@ namespace OmegaEngine
                 a = A
             };
         }
+
+        public static bool IsEqual(RGBA x, RGBA y)
+        {
+            return x.R == y.R && x.G == y.G && x.B == y.B;
+        }
     }
 }
