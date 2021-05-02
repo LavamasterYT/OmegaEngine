@@ -1,7 +1,4 @@
-﻿using System;
-using OmegaEngine;
-
-namespace OmegaEngine.Example
+﻿namespace OmegaEngine.Example
 {
     class Program
     {

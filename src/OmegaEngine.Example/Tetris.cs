@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using OmegaEngine;
 
 namespace OmegaEngine.Example
 {
@@ -11,12 +9,18 @@ namespace OmegaEngine.Example
         private int curPiece = 0;
         private Random ran = new Random();
 
+        private Music background = new Music($"{AppDomain.CurrentDomain.BaseDirectory}\\Assets\\music.wav", true);
+        private SoundEffect move = new SoundEffect($"{AppDomain.CurrentDomain.BaseDirectory}\\Assets\\move.wav");
+        private SoundEffect rotate = new SoundEffect($"{AppDomain.CurrentDomain.BaseDirectory}\\Assets\\rotate.wav");
+        private SoundEffect clear = new SoundEffect($"{AppDomain.CurrentDomain.BaseDirectory}\\Assets\\clear.wav");
+        private SoundEffect fall = new SoundEffect($"{AppDomain.CurrentDomain.BaseDirectory}\\Assets\\fall.wav");
+
         private Vector2 curLocation = new Vector2(3, 0);
 
         private Board board;
 
         private int fallTick = 0;
-        private int fallMaxTick = 60;
+        private int fallMaxTick = 15;
 
         private int _rotationIndex = 0;
         private int previousRotation = 0;
@@ -42,7 +46,7 @@ namespace OmegaEngine.Example
             set { _rotationIndex = value; if (_rotationIndex > 3) _rotationIndex = 0; else if (_rotationIndex < 0) _rotationIndex = 3; }
         }
 
-        public Tetris() : base(10 * 25, 20 * 25, 10, 20, 60, true) { }
+        public Tetris() : base(10 * 25, 20 * 25, 10, 20, "Tetris", 60, true) { }
 
         public override void BeforeStart()
         {
@@ -51,6 +55,8 @@ namespace OmegaEngine.Example
             board = new Board(10, 20);
 
             curPiece = ShuffledPieces.Dequeue();
+
+            PlayMusic(background);
         }
 
         private Queue<int> ShuffleAndQueue()
@@ -77,7 +83,7 @@ namespace OmegaEngine.Example
             return result;
         }
 
-        public override bool Update()
+        public override void Update()
         {
             fallTick++;
             if (fallTick > fallMaxTick)
@@ -86,6 +92,7 @@ namespace OmegaEngine.Example
                 var lowest = Vector2.Add(curLocation, Helper.GetLowestPoint(Pieces[curPiece], rotationIndex));
                 if (lowest.Y >= 19)
                 {
+                    PlaySFX(fall);
                     PlaceAndSetPiece();
                 }
                 else if (board.HasBlock(lowest))
@@ -106,6 +113,7 @@ namespace OmegaEngine.Example
 
                     if (place)
                     {
+                        PlaySFX(fall);
                         PlaceAndSetPiece();
                     }
                     else
@@ -113,26 +121,10 @@ namespace OmegaEngine.Example
                         curLocation = Vector2.Add(curLocation, new Vector2(0, 1));
                     }
                 }
-                board.Update();
+                if (board.Update())
+                    PlaySFX(clear);
             }
 
-            return false;
-        }
-
-        public void PlaceAndSetPiece()
-        {
-            foreach (var i in Pieces[curPiece].Rotations[rotationIndex])
-            {
-                board.Set(Vector2.Add(i, curLocation), Pieces[curPiece].Color);
-            }
-            rotationIndex = 0;
-            previousRotation = 0;
-            curPiece = ShuffledPieces.Dequeue();
-            curLocation = new Vector2(3, 0);
-        }
-
-        public override void Draw()
-        {
             var currentPiece = Pieces[curPiece].Rotations[rotationIndex];
             if (Vector2.Add(currentPiece[0], curLocation).X < 0 || Vector2.Add(currentPiece[3], curLocation).X > 9)
                 rotationIndex = previousRotation;
@@ -160,24 +152,38 @@ namespace OmegaEngine.Example
                     DrawAt(new Vector2(i % board.Width, i / board.Width), board.PlayingBoard[i]);
                 }
             }
-            base.Draw();
         }
 
-        public override void KeyDown(SDL.SDL_Keycode key)
+        public void PlaceAndSetPiece()
+        {
+            foreach (var i in Pieces[curPiece].Rotations[rotationIndex])
+            {
+                board.Set(Vector2.Add(i, curLocation), Pieces[curPiece].Color);
+            }
+            rotationIndex = 0;
+            previousRotation = 0;
+            curPiece = ShuffledPieces.Dequeue();
+            curLocation = new Vector2(3, 0);
+        }
+
+        public override void KeyDown(int keycode, bool isJoystick)
         {
             Vector2 result;
 
-            switch (key)
+            switch (keycode)
             {
-                case SDL.SDL_Keycode.SDLK_z:
+                case 25:
+                    PlaySFX(rotate);
                     previousRotation = rotationIndex;
                     rotationIndex--;
                     break;
-                case SDL.SDL_Keycode.SDLK_x:
+                case 23:
+                    PlaySFX(rotate);
                     previousRotation = rotationIndex;
                     rotationIndex++;
                     break;
-                case SDL.SDL_Keycode.SDLK_LEFT:
+                case 71:
+                    PlaySFX(move);
                     result = Vector2.Add(curLocation, new Vector2(-1, 0));
 
                     var farLeftPos = Vector2.Add(result, Pieces[curPiece].Rotations[rotationIndex][0]);
@@ -187,7 +193,8 @@ namespace OmegaEngine.Example
                         result = curLocation;
                     curLocation = result;
                     break;
-                case SDL.SDL_Keycode.SDLK_RIGHT:
+                case 72:
+                    PlaySFX(move);
                     result = Vector2.Add(curLocation, new Vector2(1, 0));
 
                     var farRightPos = Vector2.Add(result, Pieces[curPiece].Rotations[rotationIndex][3]);
@@ -197,11 +204,11 @@ namespace OmegaEngine.Example
                         result = curLocation;
                     curLocation = result;
                     break;
-                case SDL.SDL_Keycode.SDLK_DOWN:
+                case 74:
                     fallMaxTick = 3;
                     break;
-                case SDL.SDL_Keycode.SDLK_UP:
-                    
+                case 73:
+                    PlaySFX(fall);
                     while (true)
                     {
                         var lowest = Vector2.Add(curLocation, Helper.GetLowestPoint(Pieces[curPiece], rotationIndex));
@@ -230,27 +237,25 @@ namespace OmegaEngine.Example
                                 curLocation = Vector2.Add(curLocation, new Vector2(0, 1));
                             }
                         }
-                        board.Update();
+                        if (board.Update())
+                            PlaySFX(clear);
                     }
                     PlaceAndSetPiece();
-                    board.Update();
+                    if (board.Update())
+                        PlaySFX(clear);
                     break;
-                case SDL.SDL_Keycode.SDLK_i:
+                case 8:
                     curPiece++;
                     if (curPiece >= Pieces.Count)
                         curPiece = 0;
                     break;
             }
-
-            base.KeyDown(key);
         }
 
-        public override void KeyUp(SDL.SDL_Keycode key)
+        public override void KeyUp(int keycode, bool isJoystick)
         {
-            if (key == SDL.SDL_Keycode.SDLK_DOWN)
+            if (keycode == 74)
                 fallMaxTick = 60;
-
-            base.KeyUp(key);
         }
     }
 }

@@ -2,6 +2,9 @@
 
 namespace OmegaEngine
 {
+    /// <summary>
+    /// This class has not been tested with SFML, so expect some issues if using this class
+    /// </summary>
     public class Sprite
     {
         public Vector2 SpriteDimensions { get; set; }

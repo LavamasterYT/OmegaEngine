@@ -89,8 +89,9 @@ namespace OmegaEngine.Example
             }
         }
 
-        public void Update()
+        public bool Update()
         {
+            bool cleared = false;
             bool flag = true;
 
             do
@@ -112,6 +113,7 @@ namespace OmegaEngine.Example
 
                     if (filled)
                     {
+                        cleared = true;
                         RemoveRow(y);
                         for (int ay = y - 1; ay >= 0; ay--)
                         {
@@ -123,6 +125,8 @@ namespace OmegaEngine.Example
                 }
             }
             while (!flag);
+
+            return cleared;
         }
     }
 }

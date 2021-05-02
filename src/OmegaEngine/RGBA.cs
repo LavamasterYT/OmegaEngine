@@ -2,6 +2,9 @@
 
 namespace OmegaEngine
 {
+    /// <summary>
+    /// TODO: Replace this with a simpler color struct
+    /// </summary>
     public struct RGBA
     {
         public byte R { get; set; }
@@ -25,14 +28,14 @@ namespace OmegaEngine
             A = a;
         }
 
-        public SDL.SDL_Color ToSDL_Color()
+        public SFML.Graphics.Color ToSFMLColor()
         {
-            return new SDL.SDL_Color()
+            return new SFML.Graphics.Color()
             {
-                r = R,
-                g = G,
-                b = B,
-                a = A
+                R = R,
+                G = G,
+                B = B,
+                A = A
             };
         }
 

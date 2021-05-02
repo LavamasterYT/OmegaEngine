@@ -2,20 +2,23 @@
 
 namespace OmegaEngine
 {
+    /// <summary>
+    /// This struct has not been tested, so expect some issues
+    /// </summary>
     public struct Font : IDisposable
     {
-        public IntPtr hWnd;
+        public SFML.Graphics.Font LoadedFont;
         public RGBA Color;
 
-        public Font(string loc, int size, RGBA col)
+        public Font(string location, RGBA col)
         {
+            LoadedFont = new SFML.Graphics.Font(location);
             Color = col;
-            hWnd = SDL_ttf.TTF_OpenFont(loc, size);
         }
 
         public void Dispose()
         {
-            SDL_ttf.TTF_CloseFont(hWnd);
+            LoadedFont.Dispose();
         }
     }
 }

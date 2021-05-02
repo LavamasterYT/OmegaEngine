@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace OmegaEngine.Example
+﻿namespace OmegaEngine.Example
 {
     public struct Tetrimino
     {
