@@ -10,8 +10,8 @@ namespace OmegaEngine
     public abstract class Game : IDisposable
     {
         private uint framerate;
-        private int pixelWidth;
-        private int pixelHeight;
+        public int PixelWidth;
+        public int PixelHeight;
         private bool clearOnEachFrame;
         private RenderWindow window;
         RectangleShape pixel;
@@ -50,8 +50,8 @@ namespace OmegaEngine
             WindowWidth = width;
             WindowHeight = height;
 
-            pixelHeight = height / gH;
-            pixelWidth = width / gW;
+            PixelHeight = height / gH;
+            PixelWidth = width / gW;
 
             clearOnEachFrame = clear;
 
@@ -62,17 +62,7 @@ namespace OmegaEngine
 
             this.framerate = framerate;
 
-            pixel = new RectangleShape(new SFML.System.Vector2f(pixelWidth, pixelHeight));
-        }
-
-        public void PlayMusic(Music music)
-        {
-            music.music.Play();
-        }
-
-        public void PlaySFX(SoundEffect sound)
-        {
-            sound.SFX.Play();
+            pixel = new RectangleShape(new SFML.System.Vector2f(PixelWidth, PixelHeight));
         }
 
         public void Start()
@@ -146,7 +136,12 @@ namespace OmegaEngine
 
         public void DrawAt(Vector2 pos, RGBA color)
         {
-            pixel.Position = new SFML.System.Vector2f(pos.X * pixelWidth, pos.Y * pixelHeight);
+            DrawAt(pos, color, new Vector2(0, 0));
+        }
+
+        public void DrawAt(Vector2 pos, RGBA color, Vector2 offset)
+        {
+            pixel.Position = new SFML.System.Vector2f((pos.X * PixelWidth) + offset.X, (pos.Y * PixelHeight) + offset.Y);
             pixel.FillColor = color.ToSFMLColor();
             window.Draw(pixel);
         }

@@ -2,9 +2,6 @@
 
 namespace OmegaEngine
 {
-    /// <summary>
-    /// This struct has not been tested, so expect some issues
-    /// </summary>
     public struct Font : IDisposable
     {
         public SFML.Graphics.Font LoadedFont;

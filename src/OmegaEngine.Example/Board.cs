@@ -9,12 +9,16 @@ namespace OmegaEngine.Example
         public int Width { get; set; }
         public int Height { get; set; }
 
+        public RGBA BoardBackground;
+
         public Board(int width, int height)
         {
+            BoardBackground = new RGBA(10, 10, 10);
+
             PlayingBoard = new RGBA[width * height];
             for (int i = 0; i < PlayingBoard.Length; i++)
             {
-                PlayingBoard[i] = new RGBA(0, 0, 0);
+                PlayingBoard[i] = BoardBackground;
             }
 
             Width = width;
@@ -51,7 +55,7 @@ namespace OmegaEngine.Example
             }
             catch (Exception)
             {
-                return new RGBA(0, 0, 0);
+                return BoardBackground;
             }
         }
 
@@ -64,7 +68,7 @@ namespace OmegaEngine.Example
         {
             try
             {
-                return !RGBA.IsEqual(PlayingBoard[x + Width * y], new RGBA(0, 0, 0));
+                return !RGBA.IsEqual(PlayingBoard[x + Width * y], BoardBackground);
             }
             catch (Exception)
             {
@@ -76,7 +80,7 @@ namespace OmegaEngine.Example
         {
             for (int x = 0; x < Width; x++)
             {
-                Set(x, y, new RGBA(0, 0, 0));
+                Set(x, y, BoardBackground);
             }
         }
 
@@ -85,13 +89,13 @@ namespace OmegaEngine.Example
             for (int x = 0; x < Width; x++)
             {
                 Set(new Vector2(x, y + 1), Get(x, y));
-                Set(new Vector2(x, y), new RGBA(0, 0, 0));
+                Set(new Vector2(x, y), BoardBackground);
             }
         }
 
-        public bool Update()
+        public int Update()
         {
-            bool cleared = false;
+            int linesCleared = 0;
             bool flag = true;
 
             do
@@ -113,7 +117,7 @@ namespace OmegaEngine.Example
 
                     if (filled)
                     {
-                        cleared = true;
+                        linesCleared++;
                         RemoveRow(y);
                         for (int ay = y - 1; ay >= 0; ay--)
                         {
@@ -126,7 +130,7 @@ namespace OmegaEngine.Example
             }
             while (!flag);
 
-            return cleared;
+            return linesCleared;
         }
     }
 }
